@@ -37,7 +37,7 @@ class ProductManager {
                 ...product,
               };
             } else {
-              /* si ya tiene algun producto, le paso el array de productos como parametro para que el idGenerator le ponga el correspondiente */
+              /* si ya tiene algun producto, le paso el array de productos como parametro al idGenerator para que le ponga el id correspondiente */
               product = {
                 id: this.#idGenerator(productsArray),
                 code: this.#codeGenerator(),
@@ -97,6 +97,27 @@ class ProductManager {
     }
   }
 
+  async updateProduct(id, product) {
+    try {
+      /* chequeo si existe el documento */
+      if (this.#exists(this.archivo)) {
+        const productsArray = await this.#readFile(this.archivo);
+        const productsIndex = productsArray.findIndex(item => item.id === id);
+        if (productsIndex !== -1) {
+          const updateProduct = { ...productsArray[productsIndex], ...product };
+          productsArray.splice(productsIndex, 1, updateProduct);
+          await this.#writeFile(this.archivo, productsArray);
+        } else {
+          throw new Error(`No se encontro un producto con el id solicitado`);
+        }
+      }
+    } catch (error) {
+      console.log(
+        `Error al modificar producto con el id ${id}: ${error.message}`
+      );
+    }
+  }
+
   async deleteById(id) {
     try {
       /* chequeo si existe el documento */
@@ -119,6 +140,22 @@ class ProductManager {
       console.log(
         `Error al eliminar el producto con el id solicitado: ${error.message}`
       );
+    }
+  }
+
+  async deleteAll() {
+    try {
+      /* chequeo si existe el documento */
+      if (this.#exists(this.archivo)) {
+        let newArray = [];
+        console.log("Borrando datos...");
+        await this.#writeFile(this.archivo, newArray);
+        console.log(`Se borraron todos los datos del archivo ${this.archivo}`);
+      } else {
+        throw new Error(`El archivo ${this.archivo} no existe`);
+      }
+    } catch (error) {
+      console.log(`Ocurrio un error eliminando los datos: ${error.message}`);
     }
   }
 
