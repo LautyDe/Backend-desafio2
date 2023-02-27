@@ -13,11 +13,11 @@ class ProductManager {
     return code;
   }
 
-  #idGenerator() {
+  #idGenerator(productsArray = []) {
     const id =
-      this.products.length === 0
+      productsArray.length === 0
         ? 1
-        : this.products[this.products.length - 1].id + 1;
+        : productsArray[productsArray.length - 1].id + 1;
     return id;
   }
 
@@ -50,6 +50,8 @@ class ProductManager {
     try {
       if (!fs.existsSync(archivo)) {
         throw new Error("El archivo no existe");
+      } else {
+        return true;
       }
     } catch (error) {
       console.log(`Error buscando el archivo: ${error.message}`);
@@ -78,36 +80,96 @@ class ProductManager {
     this.archivo = archivo;
   }
 
-  addProduct(product) {
+  async addProduct(product) {
     try {
+      /* verifico que el producto tenga todos los parametros */
       if (this.#paramsValidator(product)) {
-        return this.products.push({
-          id: this.#idGenerator(),
-          code: this.#codeGenerator(),
-          ...product,
-        });
+        /* busco si el archivo no existe o si existe, si tiene datos*/
+        if (!this.#exists(this.archivo)) {
+          console.log("Se crea archivo");
+          let productsArray = [];
+          product = {
+            id: this.#idGenerator(productsArray),
+            code: this.#codeGenerator(),
+            ...product,
+          };
+          productsArray.push(product);
+          console.log("Agregando producto...");
+          await this.#writeFile(this.archivo, productsArray);
+          console.log(`Se agrego el producto con el id: ${product.id}`);
+          return product.id;
+        } else {
+          /* si el archivo existe, primero verifico si esta vacio */
+          if (this.#readFile(this.archivo)) {
+            console.log("Leyendo archivo...");
+            const productsArray = await this.#readFile(this.archivo);
+            if (productsArray.length === 0) {
+              /* si esta vacio no le paso parametro al idGenerator, por lo que le pondra id: 1 */
+              product = {
+                id: this.#idGenerator(),
+                code: this.#codeGenerator(),
+                ...product,
+              };
+            } else {
+              /* si ya tiene algun producto, le paso el array de productos como parametro para que el idGenerator le ponga el correspondiente */
+              product = {
+                id: this.#idGenerator(productsArray),
+                code: this.#codeGenerator(),
+                ...product,
+              };
+            }
+            console.log("Agregando producto...");
+            productsArray.push(product);
+            /* escribo el producto */
+            this.#writeFile(this.archivo, productsArray);
+            console.log(`Se agrego el producto con el id: ${product.id}`);
+            return product.id;
+          }
+        }
       }
     } catch (error) {
       console.log(`Error agregando producto: ${error.message}`);
     }
   }
 
-  getProducts() {
+  async getAll() {
     try {
-      return this.products;
+      /* chequeo si existe el documento */
+      if (this.#exists(this.archivo)) {
+        console.log("Leyendo archivo...");
+        const productsArray = await this.#readFile(this.archivo);
+        /* una vez que verifico que existe, veo si esta vacio o si tiene contenido */
+        if (productsArray.length !== 0) {
+          console.log("Archivo con contenido");
+          console.log(productsArray);
+          return productsArray;
+        } else {
+          throw new Error(`El archivo ${this.archivo} esta vacio`);
+        }
+      }
     } catch (error) {
       console.log(`Error obteniendo todos los productos: ${error.message}`);
     }
   }
 
-  getProductById(id) {
+  async getById(id) {
     try {
-      const idProduct = this.products.find(product => product.id === id);
-      if (idProduct) {
-        console.log(idProduct);
-      } else throw new Error(`Not found`);
+      /* chequeo si existe el documento */
+      if (this.#exists(this.archivo)) {
+        const productsArray = await this.#readFile(this.archivo);
+        /* uso find para buscar el producto que coincida con el id solicitado */
+        const productId = productsArray.find(item => item.id === id);
+        if (!productId) {
+          throw new Error("No se encontro un producto con el id solicitado");
+        } else {
+          console.log(`Producto con el id ${id} encontrado:\n`, productId);
+          return productId;
+        }
+      }
     } catch (error) {
       console.log(`Error al buscar producto con el id ${id}: ${error.message}`);
     }
   }
 }
+
+module.exports = ProductManager;
