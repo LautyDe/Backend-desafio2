@@ -1,3 +1,4 @@
+const { checkPrimeSync } = require("crypto");
 const fs = require("fs");
 
 class ProductManager {
@@ -168,6 +169,31 @@ class ProductManager {
       }
     } catch (error) {
       console.log(`Error al buscar producto con el id ${id}: ${error.message}`);
+    }
+  }
+
+  async deleteById(id) {
+    try {
+      /* chequeo si existe el documento */
+      if (this.#exists(this.archivo)) {
+        const productsArray = await this.#readFile(this.archivo);
+        /* verifico que exista el producto con el id solicitado */
+        console.log(`Buscando producto con id: ${id}`);
+        if (productsArray.some(item => item.id === id)) {
+          const productsArray = await this.#readFile(this.archivo);
+          /* elimino el producto */
+          console.log(`Eliminando producto con id solicitado...`);
+          const newProductsArray = productsArray.filter(item => item.id !== id);
+          this.#writeFile(this.archivo, newProductsArray);
+          console.log(`Producto con el id ${id} eliminado`);
+        } else {
+          throw new Error(`No se encontro el producto con el id ${id}`);
+        }
+      }
+    } catch (error) {
+      console.log(
+        `Error al eliminar el producto con el id solicitado: ${error.message}`
+      );
     }
   }
 }
