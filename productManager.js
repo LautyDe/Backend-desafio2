@@ -1,4 +1,3 @@
-const { checkPrimeSync } = require("crypto");
 const fs = require("fs");
 
 class ProductManager {
